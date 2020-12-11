@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="pt-BR">
+    <head>
+        <meta charset="utf-8">
+        <title>Markdown to HTML</title>
+
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            html, body {
+              margin: 0;
+              padding: 0;
+              width: 100%;
+            }
+            body {
+              display: flex;
+              flex-wrap: nowrap;
+            }
+            textarea,
+            iframe {
+              margin: 0;
+              padding: 0;
+              flex-basis: 50%;
+              height: 100vh;
+              border: 1px #eee solid;
+              box-sizing: border-box;
+            }
+        </style>
+    </head>
+    <body>
+        <textarea placeholder="Write your markdown here"></textarea>
+        <iframe src="about:blank"></iframe>
+
+        <script>
+            'use strict';
+
+            document.addEventListener('DOMContentLoaded', function () {
+                const $iframe = document.getElementsByTagName('iframe')[0];
+
+                $iframe.onload = () => {
+                    // Creating a <div id="wrapper"></div> inside iframe
+                    const $iframeWrapper = ((document) => {
+                        const $wrapper = document.createElement('div');
+                        $wrapper.id = 'wrapper';
+                        return document.body.appendChild($wrapper);
+                    })($iframe.contentDocument);
+
+                    // Adding markdown.css to iframe
+                    const $link = $iframe.contentDocument.createElement('link');
+                    $link.rel = 'stylesheet';
+                    $link.href = 'markdown.css';
+
+                    // Adding highlight.js dracula theme to iframe
+                    const $hljsTheme = $iframe.contentDocument.createElement('link');
+                    $hljsTheme.rel = 'stylesheet';
+                    $hljsTheme.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.4.1/styles/dracula.min.css';
+
+                    // Adding highlight.js script to iframe
+                    const $hljsScript = $iframe.contentDocument.createElement('script');
+                    $hljsScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.4.1/highlight.min.js'
+                    $hljsScript.integrity = 'sha512-DrpaExP2d7RJqNhXB41Q/zzzQrtb6J0zfnXD5XeVEWE8d9Hj54irCLj6dRS3eNepPja7DvKcV+9PnHC7A/g83A=='
+                    $hljsScript.crossOrigin = 'anonymous';
+                    $hljsScript.onload = () => {
+                        // Parsing trailing \ to ensure a newline
+                        showdown.extension('newline', function() {
+                            return [{
+                                type: 'lang',
+                                filter: function(text) {
+                                    return text.replace(/\\$/gm, String.fromCharCode(10));
+                                }
+                            }];
+                        });
+
+                        const converter = new showdown.Converter({
+                            tables: true,
+                            simpleLineBreaks: true,
+                            strikethrough: true,
+                            extensions: [
+                                'newline'
+                            ]
+                        });
+
+                        // Rendering HTML on keyup
+                        const $textarea = document.getElementsByTagName('textarea')[0];
+                        $textarea.onkeyup = function () {
+                            $iframeWrapper.innerHTML = converter.makeHtml(this.value);
+                            $iframeWrapper.querySelectorAll('pre > code').forEach((block) => {
+                                $iframe.contentWindow.hljs.highlightBlock(block);
+
+                                // Toggling "no-hljs" class to <pre>
+                                if (block.classList.contains('hljs')) {
+                                    block.parentNode.classList.remove('no-hljs');
+                                } else {
+                                    block.parentNode.classList.add('no-hljs');
+                                }
+                            });
+                        };
+
+                        // Force rendering on load, as some browsers will fill the textarea when refreshing the page
+                        $textarea.onkeyup();
+                    };
+
+                    // Adding stylesheets and script
+                    $iframe.contentDocument.head.appendChild($link);
+                    $iframe.contentDocument.head.appendChild($hljsTheme);
+                    $iframe.contentDocument.body.appendChild($hljsScript);
+                }
+            });
+        </script>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/1.9.1/showdown.min.js" integrity="sha512-L03kznCrNOfVxOUovR6ESfCz9Gfny7gihUX/huVbQB9zjODtYpxaVtIaAkpetoiyV2eqWbvxMH9fiSv5enX7bw==" crossorigin="anonymous"></script>
+    </body>
+</html>
